@@ -1,0 +1,222 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Custom GLTF Generator"
+  },
+  "scene": 0,
+  "scenes": [{
+    "nodes": [0]
+  }],
+  "nodes": [{
+    "children": [1, 2, 3, 4],
+    "name": "airplane"
+  }, {
+    "mesh": 0,
+    "rotation": [0, 0, 1.5708, 0],
+    "name": "body"
+  }, {
+    "mesh": 1,
+    "name": "wing"
+  }, {
+    "mesh": 2,
+    "translation": [-0.9, 0, 0],
+    "rotation": [0, 0.3927, 0, 0],
+    "name": "tail"
+  }, {
+    "mesh": 3,
+    "translation": [1, 0, 0],
+    "name": "nose"
+  }],
+  "meshes": [{
+    "primitives": [{
+      "attributes": {
+        "POSITION": 0,
+        "NORMAL": 1
+      },
+      "indices": 2,
+      "material": 0
+    }],
+    "name": "body"
+  }, {
+    "primitives": [{
+      "attributes": {
+        "POSITION": 3,
+        "NORMAL": 4
+      },
+      "indices": 5,
+      "material": 1
+    }],
+    "name": "wing"
+  }, {
+    "primitives": [{
+      "attributes": {
+        "POSITION": 6,
+        "NORMAL": 7
+      },
+      "indices": 8,
+      "material": 2
+    }],
+    "name": "tail"
+  }, {
+    "primitives": [{
+      "attributes": {
+        "POSITION": 9,
+        "NORMAL": 10
+      },
+      "indices": 11,
+      "material": 3
+    }],
+    "name": "nose"
+  }],
+  "materials": [{
+    "pbrMetallicRoughness": {
+      "baseColorFactor": [0.13, 0.58, 0.81, 1.0],
+      "metallicFactor": 0.5,
+      "roughnessFactor": 0.5
+    },
+    "name": "body_material"
+  }, {
+    "pbrMetallicRoughness": {
+      "baseColorFactor": [0.8, 0.8, 0.8, 1.0],
+      "metallicFactor": 0.5,
+      "roughnessFactor": 0.5
+    },
+    "name": "wing_material"
+  }, {
+    "pbrMetallicRoughness": {
+      "baseColorFactor": [0.53, 0.53, 0.53, 1.0],
+      "metallicFactor": 0.5,
+      "roughnessFactor": 0.5
+    },
+    "name": "tail_material"
+  }, {
+    "pbrMetallicRoughness": {
+      "baseColorFactor": [1.0, 0.0, 0.0, 1.0],
+      "metallicFactor": 0.5,
+      "roughnessFactor": 0.5
+    },
+    "name": "nose_material"
+  }],
+  "accessors": [{
+    "bufferView": 0,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3",
+    "max": [0.2, 1.0, 0.2],
+    "min": [-0.2, -1.0, -0.2]
+  }, {
+    "bufferView": 1,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3"
+  }, {
+    "bufferView": 2,
+    "componentType": 5123,
+    "count": 36,
+    "type": "SCALAR"
+  }, {
+    "bufferView": 3,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3",
+    "max": [0.5, 0.025, 0.15],
+    "min": [-0.5, -0.025, -0.15]
+  }, {
+    "bufferView": 4,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3"
+  }, {
+    "bufferView": 5,
+    "componentType": 5123,
+    "count": 36,
+    "type": "SCALAR"
+  }, {
+    "bufferView": 6,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3",
+    "max": [0.15, 0.025, 0.075],
+    "min": [-0.15, -0.025, -0.075]
+  }, {
+    "bufferView": 7,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3"
+  }, {
+    "bufferView": 8,
+    "componentType": 5123,
+    "count": 36,
+    "type": "SCALAR"
+  }, {
+    "bufferView": 9,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3",
+    "max": [0.22, 0.22, 0.22],
+    "min": [-0.22, -0.22, -0.22]
+  }, {
+    "bufferView": 10,
+    "componentType": 5126,
+    "count": 24,
+    "type": "VEC3"
+  }, {
+    "bufferView": 11,
+    "componentType": 5123,
+    "count": 36,
+    "type": "SCALAR"
+  }],
+  "bufferViews": [{
+    "buffer": 0,
+    "byteOffset": 0,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 288,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 576,
+    "byteLength": 72
+  }, {
+    "buffer": 0,
+    "byteOffset": 648,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 936,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 1224,
+    "byteLength": 72
+  }, {
+    "buffer": 0,
+    "byteOffset": 1296,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 1584,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 1872,
+    "byteLength": 72
+  }, {
+    "buffer": 0,
+    "byteOffset": 1944,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 2232,
+    "byteLength": 288
+  }, {
+    "buffer": 0,
+    "byteOffset": 2520,
+    "byteLength": 72
+  }],
+  "buffers": [{
+    "uri": "airplane.bin",
+    "byteLength": 2592
+  }]
+}
