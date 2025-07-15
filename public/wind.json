@@ -1,0 +1,12 @@
+{
+  "windSpeed": [
+    {"lat": 30, "lon": 120, "speed": 5},
+    {"lat": 31, "lon": 121, "speed": 10},
+    {"lat": 32, "lon": 122, "speed": 15}
+  ],
+  "windDirection": [
+    {"lat": 30, "lon": 120, "direction": 90},
+    {"lat": 31, "lon": 121, "direction": 180},
+    {"lat": 32, "lon": 122, "direction": 270}
+  ]
+}
