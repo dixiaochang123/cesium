@@ -1,19 +1,17 @@
 <template>
-  <div id="map"></div> <!-- 地图容器 -->
+  <div id="cesiumContainer"></div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import * as Cesium from 'cesium';
-import { CesiumHelper } from '../utils/CesiumUtils';
+import { CesiumHelper } from '@/utils/CesiumUtils';
 
-// 北京各区的geojson数据URL
 const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
-
+import textureUrl from '@/assets/tt.jpg';
 onMounted(async () => {
-  const cesiumViewer: CesiumHelper = new CesiumHelper('map');
+  const cesiumViewer = new CesiumHelper('cesiumContainer');
 
-  // 等待viewer初始化
   const waitForViewer = () => new Promise<void>((resolve) => {
     const interval = setInterval(() => {
       if (cesiumViewer.viewer) {
@@ -25,36 +23,41 @@ onMounted(async () => {
 
   await waitForViewer();
 
-  // 加载geojson数据
   const response = await fetch(geojsonUrl);
   const geojson = await response.json();
 
-  // 将geojson转换为Cesium实体
   const entities = await Cesium.GeoJsonDataSource.load(geojson, {
-    stroke: Cesium.Color.RED,
-    fill: Cesium.Color.RED.withAlpha(0.3),
-    strokeWidth: 2,
+    stroke: Cesium.Color.WHITE,
+    fill: Cesium.Color.WHITE.withAlpha(0.01),
     clampToGround: false,
   });
 
-  // 将实体添加到viewer
   cesiumViewer.viewer?.dataSources.add(entities);
 
-  // 设置所有实体的高度，使其从地面开始有深度
+  // 加载花纹图案的纹理贴图
+  const material = new Cesium.ImageMaterialProperty({
+    image: textureUrl,
+    repeat: new Cesium.Cartesian2(1.0, 1.0),
+    transparent: false,
+    
+  });
+
+  // 给每个实体的polygon设置纹理材质
   entities.entities.values.forEach(entity => {
     if (entity.polygon) {
-      entity.polygon.extrudedHeight = new Cesium.ConstantProperty(10000); // 设置挤出高度为100米，形成立体模型
-      entity.polygon.height = new Cesium.ConstantProperty(0); // 底部高度为地面高度
+      entity.polygon.material = material;
+      entity.polygon.extrudedHeight = new Cesium.ConstantProperty(5000);
+      entity.polygon.height = new Cesium.ConstantProperty(0);
     }
   });
 
-  // 缩放视图到实体范围
+  // 确保viewer存在后再执行缩放
   cesiumViewer.viewer?.zoomTo(entities);
 });
 </script>
 
 <style scoped>
-#map {
+#cesiumContainer {
   width: 100vw;
   height: 100vh;
   position: fixed;

@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { CesiumHelper } from '../utils/CesiumUtils';
+import { CesiumHelper } from '@/utils/CesiumUtils';
 import * as Cesium from 'cesium'; // 导入 Cesium 库
 
 // 定义运行雪花粒子系统的异步函数

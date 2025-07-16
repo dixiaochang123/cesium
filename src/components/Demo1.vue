@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { CesiumHelper } from '../utils/CesiumUtils'
+import { CesiumHelper } from '@/utils/CesiumUtils'
 import * as Cesium from 'cesium'
 
 onMounted(() => {

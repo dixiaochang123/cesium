@@ -7,6 +7,7 @@ export class ThreeHelper {
   renderer: THREE.WebGLRenderer
   mesh: THREE.Mesh | null = null
   airplaneGroup: THREE.Group | null = null
+  controls: any = null // Add controls property
 
   constructor(width: number, height: number) {
     // 创建 Three.js 场景
@@ -16,21 +17,11 @@ export class ThreeHelper {
     // 创建 WebGL 渲染器，并设置透明背景
     this.renderer = new THREE.WebGLRenderer({ alpha: true })
     // 设置渲染器尺寸
-    this.renderer.setSize(width, height)
-    // 设置相机初始位置
-    this.camera.position.set(0, 0, 10)
-  }
+    this.renderer.setSize(width, height);
+    this.renderer.setClearColor(0xeeeeee, 0); // Set alpha to 0 for transparent background
 
-  addTexturedPlane(textureUrl: string) {
-    // 创建一个 2x2 的平面几何体
-    const geometry = new THREE.PlaneGeometry(2, 2)
-    // 加载纹理图片
-    const texture = new THREE.TextureLoader().load(textureUrl)
-    // 创建基础材质并绑定纹理，开启透明
-    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true })
-    // 创建网格对象并添加到场景
-    this.mesh = new THREE.Mesh(geometry, material)
-    this.scene.add(this.mesh)
+    // 设置相机初始位置
+    this.camera.position.set(0, 0, 10);
   }
 
   loadGLTFModel(modelPath: string, callback?: (model: THREE.Group) => void) {
