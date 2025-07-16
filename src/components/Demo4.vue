@@ -1,14 +1,29 @@
 <template>
   <div id="threeContainer"></div>
+  <div class="custom-control-panel">
+    <div class="panel-title">控制面板</div>
+    <div class="panel-row">
+      <label>模型颜色：</label>
+      <input type="color" v-model="COLORS.meshColor" />
+      <input type="range" min="0" max="1" step="0.01" v-model.number="COLORS.meshAlpha" />
+      <span>{{ (COLORS.meshAlpha * 100).toFixed(0) }}%</span>
+    </div>
+    <div class="panel-row">
+      <label>环境光：</label>
+      <input type="color" v-model="COLORS.ambientColor" />
+      <input type="range" min="0" max="1" step="0.01" v-model.number="COLORS.ambientAlpha" />
+      <span>{{ (COLORS.ambientAlpha * 100).toFixed(0) }}%</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { reactive, onMounted } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Three } from '@/utils/ThreeUtils.ts';
-import * as dat from 'dat.gui';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { watch } from 'vue';
 const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
 
 // 响应式变量
@@ -39,32 +54,16 @@ function initThree(container: HTMLElement) {
   container.appendChild(three.renderer.domElement);
 }
 
-/**
- * 初始化环境光、方向光和 GUI 控制面板。
- * @constructor xp
- * @time 2022-12-25
- */
+const COLORS = reactive({
+  meshColor: '#00ff00',
+  meshAlpha: 1,
+  ambientColor: '#ffffff',
+  ambientAlpha: 1
+});
 function initLightsAndGUI() {
   ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   three.scene.add(ambientLight);
-  gui = new dat.GUI();
-  const lightControls = {
-    ambientIntensity: 0.5,
-    ambientColor: 0xffffff
-  };
-  const materialControls = {
-    meshColor: 0x00ff00
-  };
-  gui.add(lightControls, 'ambientIntensity', 0, 1).name('环境光强度').onChange((value: any) => {
-    ambientLight.intensity = value;
-  });
-  gui.addColor(lightControls, 'ambientColor').name('环境光颜色').onChange((value: any) => {
-    ambientLight.color.set(value);
-  });
   material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  gui.addColor(materialControls, 'meshColor').name('模型颜色').onChange((value: any) => {
-    material.color.set(value);
-  });
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(0, 1, 0);
   three.scene.add(directionalLight);
@@ -76,7 +75,7 @@ function initLightsAndGUI() {
  * @constructor xp
  * @time 2022-12-25
  */
-function initControls(container: HTMLElement) {
+function initControls() {
   controls = new OrbitControls(three.camera, three.renderer.domElement);
   controls.screenSpacePanning = false;
   controls.maxPolarAngle = Math.PI / 2;
@@ -252,6 +251,7 @@ function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: num
 function addRegionHoverEvents(regionMeshes: any[]) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+  // gui 控制面板颜色变更处
   let lastHighlighted: any = null;
   let lastOriginalColor: any = null;
   let lastOriginalScale: any = null;
@@ -328,7 +328,7 @@ onMounted(async () => {
   }
   initThree(container);
   initLightsAndGUI();
-  initControls(container);
+  initControls();
   initLabelRenderer(container);
   state.geojson = await loadGeoJson(geojsonUrl)
   const { minX, minY, maxX, maxY } = processGeoJsonBounds(state.geojson);
@@ -339,7 +339,27 @@ onMounted(async () => {
   setCamera();
   animate();
 });
+// 监听 COLORS 变化并同步到 three.js
+watch(() => [COLORS.meshColor, COLORS.meshAlpha], ([color, alpha]) => {
+  if (material) {
+    three.scene.traverse((obj: any) => {
+      if (obj.isMesh && obj.material) {
+        obj.material.color.set(color);
+        obj.material.transparent = Number(alpha) < 1;
+        obj.material.opacity = alpha;
+        if (obj.material.baseColor !== undefined) obj.material.baseColor = color;
+      }
+    });
+  }
+});
+watch(() => [COLORS.ambientColor, COLORS.ambientAlpha], ([color, alpha]) => {
+  if (ambientLight) {
+    ambientLight.color.set(color);
+    ambientLight.intensity = alpha; // 用透明度条控制环境光强度
+  }
+});
 </script>
+
 
 <style scoped>
 #threeContainer {
@@ -351,15 +371,53 @@ onMounted(async () => {
   z-index: 0;
   /* 调整z-index，确保dat.GUI面板可见 */
 }
-</style>
 
-<style>
-/* dat.GUI 样式调整 */
-.dg.main {
-  z-index: 1 !important;
-  /* 确保dat.GUI面板在最上层 */
+.custom-control-panel {
   position: absolute;
-  right: 0;
-  top: 50px;
+  top: 24px;
+  right: 32px;
+  z-index: 1000;
+  border-radius: 12px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: 'Segoe UI', 'PingFang SC', Arial, sans-serif;
+  background: rgba(0, 20, 40, 0.85);
+  padding: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  /* width: 280px; */
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  border-bottom: 2px solid #339af0;
+  padding-bottom: 8px;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  label {
+    width: 80px;
+  }
+}
+
+input[type="color"] {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 </style>
