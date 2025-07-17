@@ -141,10 +141,10 @@ function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: num
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.repeat.set(1, 1);
   texture.flipY = false;
-  texture.encoding = THREE.LinearEncoding;
+  texture.colorSpace = THREE.NoColorSpace;
   texture.colorSpace = 'srgb';
   // 调整gamma值使颜色更深
-  three.renderer.outputEncoding = THREE.sRGBEncoding;
+  three.renderer.outputColorSpace = THREE.SRGBColorSpace;
   three.renderer.gammaFactor = 2.2;
   three.renderer.gammaOutput = true;
 
