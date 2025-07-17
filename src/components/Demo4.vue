@@ -1,30 +1,27 @@
 <template>
   <div id="threeContainer"></div>
-  <div class="custom-control-panel">
+  <div class="control-panel">
     <div class="panel-title">控制面板</div>
-    <div class="panel-row">
-      <label>模型颜色：</label>
+    <div class="control-item">
+      <label>贴图颜色：</label>
       <input type="color" v-model="COLORS.meshColor" />
-      <input type="range" min="0" max="1" step="0.01" v-model.number="COLORS.meshAlpha" />
-      <span>{{ (COLORS.meshAlpha * 100).toFixed(0) }}%</span>
     </div>
-    <div class="panel-row">
-      <label>环境光：</label>
-      <input type="color" v-model="COLORS.ambientColor" />
-      <input type="range" min="0" max="1" step="0.01" v-model.number="COLORS.ambientAlpha" />
-      <span>{{ (COLORS.ambientAlpha * 100).toFixed(0) }}%</span>
+    <div class="control-item">
+      <label>透明度：</label>
+      <input type="range" v-model="COLORS.meshAlpha" min="0" max="1" step="0.1" />
+      <span>{{ COLORS.meshAlpha }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue';
+import { reactive, onMounted ,watch} from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Three } from '@/utils/ThreeUtils.ts';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { watch } from 'vue';
 const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
+import textureUrl from '@/assets/tt.jpg';
 
 // 响应式变量
 const state = reactive({
@@ -38,8 +35,6 @@ let three: any = null;
 let controls: any = null;
 let labelRenderer: any = null;
 let material: any = null;
-let ambientLight: any = null;
-let gui: any = null;
 
 /**
  * 初始化 three.js 场景和渲染器。
@@ -55,18 +50,12 @@ function initThree(container: HTMLElement) {
 }
 
 const COLORS = reactive({
-  meshColor: '#00ff00',
-  meshAlpha: 1,
-  ambientColor: '#ffffff',
-  ambientAlpha: 1
+  meshColor: '#ffffff',
+  meshAlpha: 1
 });
+
 function initLightsAndGUI() {
-  ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  three.scene.add(ambientLight);
-  material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(0, 1, 0);
-  three.scene.add(directionalLight);
+  material = new THREE.MeshBasicMaterial({ color: 0xffffff });
 }
 
 /**
@@ -145,6 +134,20 @@ function processGeoJsonBounds(geojson: any) {
  */
 function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: number, scale: number) {
   const nameSet = new Set<string>();
+  // 贴图加载器和贴图
+  const textureLoader = new THREE.TextureLoader();
+  const texture = textureLoader.load(textureUrl);
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.repeat.set(1, 1);
+  texture.flipY = false;
+  texture.encoding = THREE.LinearEncoding;
+  texture.colorSpace = 'srgb';
+  // 调整gamma值使颜色更深
+  three.renderer.outputEncoding = THREE.sRGBEncoding;
+  three.renderer.gammaFactor = 2.2;
+  three.renderer.gammaOutput = true;
+
   // 用于事件拾取的 mesh 列表
   const regionMeshes: any[] = [];
   geojson.features.forEach((feature: any) => {
@@ -152,23 +155,51 @@ function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: num
       feature.geometry.coordinates.forEach((polygonCoords: any) => {
         polygonCoords.forEach((coordinates: number[][]) => {
           const shape = new THREE.Shape();
+          const hole = new THREE.Path();
           coordinates.forEach((coord: number[], index: number) => {
             const x = (coord[0] - centerX) * scale;
             const y = (coord[1] - centerY) * scale;
             if (index === 0) {
               shape.moveTo(x, y);
+              hole.moveTo(x, y);
             } else {
               shape.lineTo(x, y);
+              hole.lineTo(x, y);
             }
           });
+          // shape.holes.push(hole);//镂空
           const extrudeSettings = { steps: 1, depth: 50, bevelEnabled: false };
           const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-          const mesh = new THREE.Mesh(geometry, material.clone());
+          // 归一化 UV 坐标
+          geometry.computeBoundingBox();
+          const boundingBox = geometry.boundingBox!;
+          const { min, max } = boundingBox;
+          const offset = new THREE.Vector2(-min.x, -min.y);
+          const range = new THREE.Vector2(max.x - min.x, max.y - min.y);
+          const uvAttribute = geometry.attributes.uv;
+          for (let i = 0; i < uvAttribute.count; i++) {
+            const x = geometry.attributes.position.getX(i);
+            const y = geometry.attributes.position.getY(i);
+            uvAttribute.setXY(i, (x + offset.x) / range.x, (y + offset.y) / range.y);
+          }
+          // 贴图材质
+          const meshMaterial = new THREE.MeshBasicMaterial({
+            color: COLORS.meshColor,
+            map: texture,
+            transparent: true,
+            opacity: COLORS.meshAlpha,
+            side: THREE.FrontSide
+          });
+          const mesh = new THREE.Mesh(geometry, meshMaterial);
           mesh.userData = { feature };
           three.scene.add(mesh);
           regionMeshes.push(mesh);
           // 绘制边界线
-          const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+          const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xffffff,
+            transparent: true,
+            opacity: COLORS.meshAlpha
+          });
           const points = coordinates.map((coord: number[]) => {
             const x = (coord[0] - centerX) * scale;
             const y = (coord[1] - centerY) * scale;
@@ -251,10 +282,9 @@ function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: num
 function addRegionHoverEvents(regionMeshes: any[]) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
-  // gui 控制面板颜色变更处
+
   let lastHighlighted: any = null;
   let lastOriginalColor: any = null;
-  let lastOriginalScale: any = null;
   let lastOriginalGeometry: any = null;
   const container = document.getElementById('threeContainer') as HTMLElement;
   if (!container) return;
@@ -279,10 +309,21 @@ function addRegionHoverEvents(regionMeshes: any[]) {
         const shape = mesh.geometry.parameters && mesh.geometry.parameters.shapes ? mesh.geometry.parameters.shapes : null;
         if (shape) {
           const extrudeSettings = { steps: 1, depth: 80, bevelEnabled: false };
+          const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+          // 归一化 UV 坐标
+          geometry.computeBoundingBox();
+          const { min, max } = geometry.boundingBox;
+          const offset = new THREE.Vector2(-min.x, -min.y);
+          const range = new THREE.Vector2(max.x - min.x, max.y - min.y);
+          const uvAttribute = geometry.attributes.uv;
+          for (let i = 0; i < uvAttribute.count; i++) {
+            const x = geometry.attributes.position.getX(i);
+            const y = geometry.attributes.position.getY(i);
+            uvAttribute.setXY(i, (x + offset.x) / range.x, (y + offset.y) / range.y);
+          }
           mesh.geometry.dispose();
-          mesh.geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+          mesh.geometry = geometry;
         }
-        mesh.material.color.set(0xffd700); // 高亮色（金色）
       }
     } else {
       if (lastHighlighted) {
@@ -339,29 +380,78 @@ onMounted(async () => {
   setCamera();
   animate();
 });
-// 监听 COLORS 变化并同步到 three.js
+// 只保留mesh相关的监听
 watch(() => [COLORS.meshColor, COLORS.meshAlpha], ([color, alpha]) => {
-  if (material) {
-    three.scene.traverse((obj: any) => {
-      if (obj.isMesh && obj.material) {
-        obj.material.color.set(color);
-        obj.material.transparent = Number(alpha) < 1;
-        obj.material.opacity = alpha;
-        if (obj.material.baseColor !== undefined) obj.material.baseColor = color;
-      }
-    });
-  }
-});
-watch(() => [COLORS.ambientColor, COLORS.ambientAlpha], ([color, alpha]) => {
-  if (ambientLight) {
-    ambientLight.color.set(color);
-    ambientLight.intensity = alpha; // 用透明度条控制环境光强度
-  }
+  three.scene.traverse((obj: any) => {
+    if (obj.isMesh && obj.material) {
+      obj.material.color.set(color);
+      obj.material.transparent = true;
+      obj.material.opacity = alpha;
+    }
+  });
 });
 </script>
 
 
 <style scoped>
+.control-panel {
+  position: fixed;
+  top: 50px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+  width: 240px;
+}
+.panel-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  border-bottom: 2px solid #339af0;
+  padding-bottom: 8px;
+}
+.control-item {
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.control-item:last-child {
+  margin-bottom: 0;
+}
+
+.control-item label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+  font-size: 14px;
+  width: 70px;
+  text-align: right;
+}
+
+.control-item input[type="range"] {
+  width: 150px;
+  margin-right: 10px;
+}
+
+.control-item input[type="color"] {
+  width: 28px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+}
+
+.control-item span {
+  font-size: 14px;
+  color: #666;
+}
+
 #threeContainer {
   width: 100vw;
   height: 100vh;
@@ -369,55 +459,5 @@ watch(() => [COLORS.ambientColor, COLORS.ambientAlpha], ([color, alpha]) => {
   left: 0;
   top: 0;
   z-index: 0;
-  /* 调整z-index，确保dat.GUI面板可见 */
-}
-
-.custom-control-panel {
-  position: absolute;
-  top: 24px;
-  right: 32px;
-  z-index: 1000;
-  border-radius: 12px;
-  min-width: 280px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  font-family: 'Segoe UI', 'PingFang SC', Arial, sans-serif;
-  background: rgba(0, 20, 40, 0.85);
-  padding: 15px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  /* width: 280px; */
-  backdrop-filter: blur(10px);
-  color: #ffffff;
-}
-
-.panel-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #ffffff;
-  margin-bottom: 8px;
-  letter-spacing: 1px;
-  border-bottom: 2px solid #339af0;
-  padding-bottom: 8px;
-}
-
-.panel-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  label {
-    width: 80px;
-  }
-}
-
-input[type="color"] {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 </style>

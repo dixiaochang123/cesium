@@ -25,9 +25,94 @@ import { CesiumHelper } from '@/utils/CesiumUtils';
 
 const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
 import textureUrl from '@/assets/tt.jpg';
-onMounted(async () => {
-  const cesiumViewer = new CesiumHelper('cesiumContainer');
 
+// 加载 GeoJSON 数据
+async function loadGeoJson(url: string) {
+  const response = await fetch(url);
+  return await response.json();
+}
+
+// 设置多边形材质
+function setPolygonMaterial(entities: any, material: any) {
+  entities.entities.values.forEach((entity: any) => {
+    if (entity.polygon) {
+      entity.polygon.material = material;
+      entity.polygon.extrudedHeight = new Cesium.ConstantProperty(5000);
+      entity.polygon.height = new Cesium.ConstantProperty(0);
+    }
+  });
+}
+
+// 计算多边形中心点
+function computePolygonCenter(points: any[]): [number, number] {
+  let sumX = 0, sumY = 0, count = 0;
+  points.forEach((coord: any) => {
+    sumX += coord[0];
+    sumY += coord[1];
+    count++;
+  });
+  return [sumX / count, sumY / count];
+}
+
+// 添加标记点和名称标签
+function addMarkerAndLabel(entities: any, lng: number, lat: number, name: string) {
+  const markerEntity = entities.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lng, lat, 5000),
+    billboard: {
+      image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="6" fill="red" stroke="WHITE" stroke-width="2"/></svg>',
+      width: 16,
+      height: 16,
+      scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 2.0e6, 1.0),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
+    },
+    show: true
+  });
+  const labelEntity = entities.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lng, lat, 5000),
+    label: {
+      text: name,
+      font: '14px sans-serif',
+      fillColor: Cesium.Color.WHITE,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      pixelOffset: new Cesium.Cartesian2(0, -10),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 2.0e6, 1.0),
+      pixelOffsetScaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 2.0e6, 1.0)
+    },
+    show: true
+  });
+  console.log('markerEntity', markerEntity, 'labelEntity', labelEntity);
+}
+
+// 处理所有区的中心点和标记
+function processRegions(geojson: any, entities: any) {
+  const nameSet = new Set<string>();
+  geojson.features.forEach((feature: any) => {
+    let polygons = [];
+    if (feature.geometry.type === 'MultiPolygon') {
+      polygons = feature.geometry.coordinates.flat(1);
+    } else if (feature.geometry.type === 'Polygon') {
+      polygons = feature.geometry.coordinates;
+    }
+    polygons.forEach((coords: any) => {
+      let points = coords;
+      if (Array.isArray(coords[0][0])) {
+        points = coords[0];
+      }
+      const [centerLng, centerLat] = computePolygonCenter(points);
+      if (feature.properties.name && !nameSet.has(feature.properties.name)) {
+        nameSet.add(feature.properties.name);
+        addMarkerAndLabel(entities, centerLng, centerLat, feature.properties.name);
+      }
+    });
+  });
+}
+
+onMounted(async () => {
+  const cesiumViewer: CesiumHelper = new CesiumHelper('cesiumContainer');
   const waitForViewer = () => new Promise<void>((resolve) => {
     const interval = setInterval(() => {
       if (cesiumViewer.viewer) {
@@ -36,39 +121,22 @@ onMounted(async () => {
       }
     }, 100);
   });
-
   await waitForViewer();
-
-  const response = await fetch(geojsonUrl);
-  const geojson = await response.json();
-
+  const geojson = await loadGeoJson(geojsonUrl);
   const entities = await Cesium.GeoJsonDataSource.load(geojson, {
     stroke: Cesium.Color.WHITE,
     fill: Cesium.Color.WHITE.withAlpha(0.01),
     clampToGround: false,
   });
-
   cesiumViewer.viewer?.dataSources.add(entities);
-
-  // 加载花纹图案的纹理贴图
   const material = new Cesium.ImageMaterialProperty({
     image: textureUrl,
     repeat: new Cesium.Cartesian2(1.0, 1.0),
     transparent: false,
-
   });
-
-  // 给每个实体的polygon设置纹理材质
-  entities.entities.values.forEach(entity => {
-    if (entity.polygon) {
-      entity.polygon.material = material;
-      entity.polygon.extrudedHeight = new Cesium.ConstantProperty(5000);
-      entity.polygon.height = new Cesium.ConstantProperty(0);
-    }
-  });
-
-  // 确保viewer存在后再执行缩放
+  setPolygonMaterial(entities, material);
   cesiumViewer.viewer?.zoomTo(entities);
+  processRegions(geojson, entities);
 });
 </script>
 

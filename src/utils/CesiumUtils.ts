@@ -44,6 +44,4 @@ export class CesiumHelper { // 定义 Cesium 工具类
             }
         })
     }
-
-    // 其他Cesium相关功能可在此扩展
 }
