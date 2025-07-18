@@ -24,6 +24,14 @@ const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json
 import textureUrl from '@/assets/tt.jpg';
 
 // 响应式变量
+/**
+ * 响应式状态对象
+ * @type {Object}
+ * @property {any} geojson - GeoJSON 数据对象
+ * @property {Array} features - GeoJSON 特征数组
+ * @property {number} width - 容器宽度
+ * @property {number} height - 容器高度
+ */
 const state = reactive({
   geojson: null as any,
   features: [] as any[],
@@ -31,16 +39,39 @@ const state = reactive({
   height: 0
 });
 
+/**
+ * Three.js 实例对象
+ * @type {any}
+ */
 let three: any = null;
-let controls: any = null;
-let labelRenderer: any = null;
-let material: any = null;
 
 /**
- * 初始化 three.js 场景和渲染器。
- * @param {HTMLElement} container three.js 容器元素
- * @constructor xp
- * @time 2022-12-25
+ * 轨道控制器实例
+ * @type {any}
+ */
+let controls: any = null;
+
+/**
+ * CSS2D 标签渲染器实例
+ * @type {any}
+ */
+let labelRenderer: any = null;
+
+/**
+ * 颜色和透明度配置对象
+ * @type {Object}
+ * @property {string} meshColor - 网格颜色
+ * @property {number} meshAlpha - 网格透明度
+ */
+const COLORS = reactive({
+  meshColor: '#ffffff',
+  meshAlpha: 1
+});
+
+/**
+ * 初始化 three.js 场景和渲染器
+ * @param {HTMLElement} container - three.js 容器元素
+ * @description 根据容器尺寸初始化 Three.js 场景和渲染器
  */
 function initThree(container: HTMLElement) {
   state.width = container.clientWidth;
@@ -49,20 +80,9 @@ function initThree(container: HTMLElement) {
   container.appendChild(three.renderer.domElement);
 }
 
-const COLORS = reactive({
-  meshColor: '#ffffff',
-  meshAlpha: 1
-});
-
-function initLightsAndGUI() {
-  material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-}
-
 /**
- * 初始化轨道控制器。
- * @param {HTMLElement} container three.js 容器元素
- * @constructor xp
- * @time 2022-12-25
+ * 初始化轨道控制器
+ * @description 设置轨道控制器的基本参数，限制相机移动范围
  */
 function initControls() {
   controls = new OrbitControls(three.camera, three.renderer.domElement);
@@ -71,10 +91,9 @@ function initControls() {
 }
 
 /**
- * 初始化 CSS2D 标签渲染器。
- * @param {HTMLElement} container three.js 容器元素
- * @constructor xp
- * @time 2022-12-25
+ * 初始化 CSS2D 标签渲染器
+ * @param {HTMLElement} container - three.js 容器元素
+ * @description 创建并配置 CSS2D 标签渲染器，用于显示区域名称标签
  */
 function initLabelRenderer(container: HTMLElement) {
   labelRenderer = new CSS2DRenderer();
@@ -84,10 +103,12 @@ function initLabelRenderer(container: HTMLElement) {
   labelRenderer.domElement.style.pointerEvents = 'none';
   container.appendChild(labelRenderer.domElement);
 }
+
 /**
- * 加载 GeoJSON 数据。
- * @param {string} url GeoJSON 文件 URL
- * @returns {Promise<any>}
+ * 加载 GeoJSON 数据
+ * @param {string} url - GeoJSON 文件的 URL
+ * @returns {Promise<any>} GeoJSON 数据对象
+ * @description 从指定 URL 异步加载 GeoJSON 数据
  */
 async function loadGeoJson(url: string) {
   const response = await fetch(url);
@@ -95,11 +116,10 @@ async function loadGeoJson(url: string) {
 }
 
 /**
- * 计算 GeoJSON 边界范围。
- * @param {any} geojson GeoJSON 数据
- * @returns {{minX:number,minY:number,maxX:number,maxY:number}}
- * @constructor xp
- * @time 2022-12-25
+ * 计算 GeoJSON 边界范围
+ * @param {any} geojson - GeoJSON 数据对象
+ * @returns {{minX: number, minY: number, maxX: number, maxY: number}} 边界范围对象
+ * @description 计算 GeoJSON 数据中所有坐标点的边界范围
  */
 function processGeoJsonBounds(geojson: any) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -124,13 +144,12 @@ function processGeoJsonBounds(geojson: any) {
 }
 
 /**
- * 创建区域模型和标签。
- * @param {any} geojson GeoJSON 数据
- * @param {number} centerX 中心点 X
- * @param {number} centerY 中心点 Y
- * @param {number} scale 缩放因子
- * @constructor xp
- * @time 2022-12-25
+ * 创建区域模型和标签
+ * @param {any} geojson - GeoJSON 数据对象
+ * @param {number} centerX - 中心点 X 坐标
+ * @param {number} centerY - 中心点 Y 坐标
+ * @param {number} scale - 缩放因子
+ * @description 根据 GeoJSON 数据创建 3D 区域模型、边界线和标签
  */
 function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: number, scale: number) {
   const nameSet = new Set<string>();
@@ -274,10 +293,9 @@ function createRegionMeshesAndLabels(geojson: any, centerX: number, centerY: num
 }
 
 /**
- * 添加区域鼠标悬停高亮事件。
- * @param {Array} regionMeshes 区域 mesh 列表
- * @constructor xp
- * @time 2022-12-25
+ * 添加区域鼠标悬停高亮事件
+ * @param {Array<THREE.Mesh>} regionMeshes - 区域网格对象数组
+ * @description 为区域模型添加鼠标悬停效果，包括高亮显示和高度变化
  */
 function addRegionHoverEvents(regionMeshes: any[]) {
   const raycaster = new THREE.Raycaster();
@@ -312,7 +330,7 @@ function addRegionHoverEvents(regionMeshes: any[]) {
           const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
           // 归一化 UV 坐标
           geometry.computeBoundingBox();
-          const { min, max } = geometry.boundingBox;
+          const { min, max } = geometry.boundingBox!;
           const offset = new THREE.Vector2(-min.x, -min.y);
           const range = new THREE.Vector2(max.x - min.x, max.y - min.y);
           const uvAttribute = geometry.attributes.uv;
@@ -337,9 +355,8 @@ function addRegionHoverEvents(regionMeshes: any[]) {
 }
 
 /**
- * 设置相机参数。
- * @constructor xp
- * @time 2022-12-25
+ * 设置相机参数
+ * @description 配置相机的位置、视角和投影参数
  */
 function setCamera() {
   three.camera.position.set(0, -500, 1500);
@@ -350,9 +367,8 @@ function setCamera() {
 }
 
 /**
- * 动画循环与渲染。
- * @constructor xp
- * @time 2022-12-25
+ * 动画循环与渲染
+ * @description 实现场景的连续渲染，更新控制器状态和标签渲染
  */
 function animate() {
   requestAnimationFrame(animate);
@@ -368,7 +384,6 @@ onMounted(async () => {
     return;
   }
   initThree(container);
-  initLightsAndGUI();
   initControls();
   initLabelRenderer(container);
   state.geojson = await loadGeoJson(geojsonUrl)
