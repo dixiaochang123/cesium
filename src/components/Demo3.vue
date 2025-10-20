@@ -10,6 +10,7 @@
     <div class="info-content">
       <p>北京市总面积约16,410平方公里，常住人口超过2100万。全市下辖16个市辖区。</p>
       <p>本可视化使用CesiumJS展示了北京市行政区划的3D模型，边界线绘制在模型上方。</p>
+      <p>中国以外的区域已被隐藏，只显示中国范围内的内容。</p>
     </div>
   </div>
   <div class="footer">
@@ -24,15 +25,14 @@ import * as Cesium from 'cesium';
 import { CesiumHelper } from '@/utils/CesiumUtils';
 
 const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
+// const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json';
 import textureUrl from '@/assets/tt.jpg';
 
-// 加载 GeoJSON 数据
 async function loadGeoJson(url: string) {
   const response = await fetch(url);
   return await response.json();
 }
 
-// 设置多边形材质
 function setPolygonMaterial(entities: any, material: any) {
   entities.entities.values.forEach((entity: any) => {
     if (entity.polygon) {
@@ -43,7 +43,6 @@ function setPolygonMaterial(entities: any, material: any) {
   });
 }
 
-// 计算多边形中心点
 function computePolygonCenter(points: any[]): [number, number] {
   let sumX = 0, sumY = 0, count = 0;
   points.forEach((coord: any) => {
@@ -54,7 +53,6 @@ function computePolygonCenter(points: any[]): [number, number] {
   return [sumX / count, sumY / count];
 }
 
-// 添加标记点和名称标签
 function addMarkerAndLabel(entities: any, lng: number, lat: number, name: string) {
   const markerEntity = entities.entities.add({
     position: Cesium.Cartesian3.fromDegrees(lng, lat, 5000),
@@ -67,6 +65,7 @@ function addMarkerAndLabel(entities: any, lng: number, lat: number, name: string
     },
     show: true
   });
+
   const labelEntity = entities.entities.add({
     position: Cesium.Cartesian3.fromDegrees(lng, lat, 5000),
     label: {
@@ -87,9 +86,9 @@ function addMarkerAndLabel(entities: any, lng: number, lat: number, name: string
   console.log('markerEntity', markerEntity, 'labelEntity', labelEntity);
 }
 
-// 处理所有区的中心点和标记
 function processRegions(geojson: any, entities: any) {
   const nameSet = new Set<string>();
+
   geojson.features.forEach((feature: any) => {
     let polygons = [];
     if (feature.geometry.type === 'MultiPolygon') {
@@ -97,6 +96,7 @@ function processRegions(geojson: any, entities: any) {
     } else if (feature.geometry.type === 'Polygon') {
       polygons = feature.geometry.coordinates;
     }
+
     polygons.forEach((coords: any) => {
       let points = coords;
       if (Array.isArray(coords[0][0])) {
@@ -112,7 +112,16 @@ function processRegions(geojson: any, entities: any) {
 }
 
 onMounted(async () => {
-  const cesiumViewer: CesiumHelper = new CesiumHelper('cesiumContainer');
+  const cesiumViewer: CesiumHelper = new CesiumHelper('cesiumContainer', {
+    // 禁用默认的底图影像
+    // baseLayerPicker: false,
+    // baseLayer: false,
+
+    // // 禁用默认的天空盒和地形
+    // skyBox: false,
+    // terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+  });
+
   const waitForViewer = () => new Promise<void>((resolve) => {
     const interval = setInterval(() => {
       if (cesiumViewer.viewer) {
@@ -122,25 +131,40 @@ onMounted(async () => {
     }, 100);
   });
   await waitForViewer();
+  
+  // 设置场景的背景颜色为黑色
+  // if (cesiumViewer.viewer) {
+  //   cesiumViewer.viewer.scene.backgroundColor = Cesium.Color.BLACK;
+    
+  //   // 移除所有默认的图层
+  //   cesiumViewer.viewer.imageryLayers.removeAll();
+  // }
+
   const geojson = await loadGeoJson(geojsonUrl);
+
   const entities = await Cesium.GeoJsonDataSource.load(geojson, {
     stroke: Cesium.Color.WHITE,
     fill: Cesium.Color.WHITE.withAlpha(0.01),
     clampToGround: false,
   });
+
   cesiumViewer.viewer?.dataSources.add(entities);
+
   const material = new Cesium.ImageMaterialProperty({
     image: textureUrl,
     repeat: new Cesium.Cartesian2(1.0, 1.0),
     transparent: false,
   });
+
   setPolygonMaterial(entities, material);
+
   cesiumViewer.viewer?.zoomTo(entities);
   processRegions(geojson, entities);
 });
 </script>
 
 <style scoped>
+/* Cesium容器样式 */
 #cesiumContainer {
   width: 100vw;
   height: 100vh;
@@ -150,6 +174,7 @@ onMounted(async () => {
   z-index: 0;
 }
 
+/* 页面头部样式 */
 .header {
   position: absolute;
   top: 48px;
@@ -164,6 +189,7 @@ onMounted(async () => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
+/* 标题样式 */
 .title {
   font-size: 1.8rem;
   font-weight: bold;
@@ -174,6 +200,7 @@ onMounted(async () => {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* 副标题样式 */
 .subtitle {
   font-size: 1rem;
   opacity: 0.9;
@@ -181,6 +208,7 @@ onMounted(async () => {
   color: #a0d2ff;
 }
 
+/* 信息面板样式 */
 .info-panel {
   position: absolute;
   left: 0;
@@ -194,6 +222,7 @@ onMounted(async () => {
   backdrop-filter: blur(10px);
 }
 
+/* 信息面板标题样式 */
 .info-panel h3 {
   color: #4dabf7;
   margin-bottom: 12px;
@@ -202,12 +231,14 @@ onMounted(async () => {
   padding-bottom: 8px;
 }
 
+/* 信息内容样式 */
 .info-content {
   line-height: 1.5;
   color: #c5e3ff;
   font-size: 0.9rem;
 }
 
+/* 页脚样式 */
 .footer {
   position: absolute;
   bottom: 0;

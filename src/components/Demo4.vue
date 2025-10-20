@@ -20,7 +20,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Three } from '@/utils/ThreeUtils.ts';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
+// const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
+const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json';
 import textureUrl from '@/assets/tt.jpg';
 
 // 响应式变量

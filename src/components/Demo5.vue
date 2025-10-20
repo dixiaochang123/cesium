@@ -4,12 +4,53 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import AMapLoader from "@amap/amap-jsapi-loader";
-const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
-
+// const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/110000_full.json';
+const geojsonUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json';
 let map = ref<any>(null);
 let loca = ref<any>(null);
 const polygonLayer = ref<any>(null);
 const lineLayer = ref<any>(null); // 用于边界线
+
+// 颜色控制状态
+const polygonColors = ref({
+  topColor: '#4facfe',
+  sideTopColor: '#4facfe',
+  sideBottomColor: '#0a1929'
+});
+const lineColor = ref('#ffffff');
+
+// 纹理控制状态
+const textureSettings = ref({
+  enabled: false,
+  textureUrl: '',
+  textureSize: [720, 695]
+});
+
+// 更新多边形颜色
+const updatePolygonColors = () => {
+  if (polygonLayer.value) {
+    const styleConfig = {
+      topColor: polygonColors.value.topColor,
+      sideTopColor: polygonColors.value.sideTopColor,
+      sideBottomColor: polygonColors.value.sideBottomColor,
+      height: 100000,
+      altitude: 0,
+    };
+    
+    // 如果启用纹理，添加纹理配置
+    if (textureSettings.value.enabled && textureSettings.value.textureUrl) {
+      styleConfig.texture = textureSettings.value.textureUrl;
+      styleConfig.textureSize = textureSettings.value.textureSize;
+    }
+    
+    polygonLayer.value.setStyle(styleConfig);
+  }
+};
+
+// 更新纹理设置
+const updateTexture = () => {
+  updatePolygonColors(); // 重新应用样式
+};
 const initMap = async (AMap: any) => {
   try {
     const container = document.getElementById('container');
@@ -35,6 +76,13 @@ const initMap = async (AMap: any) => {
     createPrismLayer(geoData)
     // 创建白色边界线图层
     createBoundaryLines(geoData);
+
+    const imageLayer = new AMap.ImageLayer({
+      url: 'https://gw.alipayobjects.com/mdn/rms_816329/afts/img/A*0tmIRJG9cQQAAAAAAAAAAAAAARQnAQ', // 远程可访问
+      bounds: new AMap.Bounds([119.19, 29.12], [122.14, 30.94]), // 西南-东北
+      zIndex: 2,
+    });
+    map.value.add(imageLayer);
     
   } catch (error) {
     console.error('地图加载失败', error);
@@ -58,11 +106,15 @@ const createPrismLayer = async (geoData: any) => {
     polygonLayer.value.setSource(source);
     // 设置样式 - 为每个区设置高度和颜色
     polygonLayer.value.setStyle({
-      topColor: '#4facfe',
+      topColor: 'rgba(255,255,255,0.1)',
       sideTopColor: '#4facfe',
       sideBottomColor: '#0a1929',
-      height: 10000,
+      height: 100000,
       altitude: 0,
+      // 纹理配置
+     textureSize : [720,695],
+      // texture: textureSettings.value.enabled && textureSettings.value.textureUrl ? textureSettings.value.textureUrl : undefined,
+      // textureSize: textureSettings.value.enabled && textureSettings.value.textureUrl ? textureSettings.value.textureSize : [720,695],
     });
     // 添加图层
     loca.value.add(polygonLayer.value);
